@@ -67,34 +67,271 @@ One note before you delve into your tasks: for each endpoint, you are expected t
 8. Create a `POST` endpoint to get questions to play the quiz. This endpoint should take a category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions.
 9. Create error handlers for all expected errors including 400, 404, 422, and 500.
 
-## Documenting your Endpoints
+## API Endpoints Documentation
 
-You will need to provide detailed documentation of your API endpoints including the URL, request parameters, and the response body. Use the example below as a reference.
+### `GET '/categories'`
 
-### Documentation Example
+- **Description**: Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
+- **Request Arguments**: None
+- **Returns**: An object with a single key, `categories`, that contains an object of `id: category_string` key: value pairs.
 
-`GET '/api/v1.0/categories'`
-
-- Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
-- Request Arguments: None
-- Returns: An object with a single key, `categories`, that contains an object of `id: category_string` key: value pairs.
-
+**Response Example:**
 ```json
 {
-  "1": "Science",
-  "2": "Art",
-  "3": "Geography",
-  "4": "History",
-  "5": "Entertainment",
-  "6": "Sports"
+  "success": true,
+  "categories": {
+    "1": "Science",
+    "2": "Art",
+    "3": "Geography",
+    "4": "History",
+    "5": "Entertainment",
+    "6": "Sports"
+  }
+}
+```
+
+**Error Response:**
+- `500` - Internal server error
+
+---
+
+### `GET '/questions'`
+
+- **Description**: Fetches a paginated list of questions with optional pagination parameters
+- **Request Arguments**: 
+  - `page` (optional): Page number (default: 1)
+  - `per_page` (optional): Number of questions per page (default: 10)
+- **Returns**: An object containing questions, total count, categories
+
+**Request Example:**
+```
+GET /questions?page=1&per_page=10
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the capital of France?",
+      "answer": "Paris",
+      "category": 3,
+      "difficulty": 1
+    }
+  ],
+  "total_questions": 50,
+  "categories": {
+    "1": "Science",
+    "2": "Art",
+    "3": "Geography",
+    "4": "History",
+    "5": "Entertainment", 
+    "6": "Sports"
+  },
+}
+```
+
+**Error Response:**
+- `500` - Internal server error
+
+---
+
+### `DELETE '/questions/<int:question_id>'`
+
+- **Description**: Deletes a specific question by its ID
+- **Request Arguments**: 
+  - `question_id` (path parameter): The ID of the question to delete
+- **Returns**: An object confirming the deletion
+
+**Request Example:**
+```
+DELETE /questions/1
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "deleted": 1
+}
+```
+
+**Error Response:**
+- `404` - Question not found
+- `500` - Internal server error
+
+---
+
+### `POST '/questions'`
+
+- **Description**: Creates a new question with the provided data
+- **Request Body**: JSON object containing question, answer, category, and difficulty
+- **Returns**: An object confirming the creation with the new question ID
+
+**Request Body:**
+```json
+{
+  "question": "What is the largest planet in our solar system?",
+  "answer": "Jupiter",
+  "category": 1,
+  "difficulty": 2
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "created": 25
+}
+```
+
+**Error Response:**
+- `400` - Bad request (missing required fields)
+- `500` - Internal server error
+
+---
+
+### `POST '/questions/search'`
+
+- **Description**: Searches for questions containing the specified search term
+- **Request Body**: JSON object containing the search term
+- **Returns**: An object containing matching questions and total count
+
+**Request Body:**
+```json
+{
+  "searchTerm": "capital"
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the capital of France?",
+      "answer": "Paris",
+      "category": 3,
+      "difficulty": 1
+    },
+    {
+      "id": 15,
+      "question": "What is the capital of Japan?",
+      "answer": "Tokyo",
+      "category": 3,
+      "difficulty": 2
+    }
+  ],
+  "total_questions": 2
+}
+```
+
+**Error Response:**
+- `400` - Bad request (missing search term)
+- `500` - Internal server error
+
+---
+
+### `GET '/categories/<string:category_id>/questions'`
+
+- **Description**: Fetches all questions for a specific category
+- **Request Arguments**: 
+  - `category_id` (path parameter): The ID of the category
+- **Returns**: An object containing questions for the specified category
+
+**Request Example:**
+```
+GET /categories/1/questions
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the largest planet in our solar system?",
+      "answer": "Jupiter",
+      "category": 1,
+      "difficulty": 2
+    },
+    {
+      "id": 2,
+      "question": "What is the chemical symbol for gold?",
+      "answer": "Au",
+      "category": 1,
+      "difficulty": 1
+    }
+  ]
+}
+```
+
+**Error Response:**
+- `500` - Internal server error
+
+---
+
+### `POST '/quizzes'`
+
+- **Description**: Gets a random question for the quiz, excluding previously asked questions
+- **Request Body**: JSON object containing quiz category and previous questions
+- **Returns**: An object containing a random question
+
+**Request Body:**
+```json
+{
+  "quiz_category": {
+    "id": 1,
+    "type": "Science"
+  },
+  "previous_questions": [1, 4, 20]
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "question": {
+    "id": 15,
+    "question": "What is the chemical symbol for oxygen?",
+    "answer": "O",
+    "category": 1,
+    "difficulty": 1
+  }
+}
+```
+
+**Error Response:**
+- `400` - Bad request (missing category information)
+- `500` - Internal server error
+
+## Error Handling
+
+The API includes comprehensive error handling for the following scenarios:
+
+- **400 Bad Request**: Invalid request data or missing required fields
+- **404 Not Found**: Requested resource not found
+- **422 Unprocessable Entity**: Request cannot be processed
+- **500 Internal Server Error**: Server-side error
+
+All error responses follow this format:
+```json
+{
+  "success": false,
+  "error": 400,
+  "message": "Bad request"
 }
 ```
 
 ## Testing
-
-Write at least one test for the success and at least one error behavior of each endpoint using the unittest library.
-
-To deploy the tests, run
+To run the tests, run
 
 ```bash
 dropdb trivia_test
