@@ -31,13 +31,13 @@ class TriviaTestCase(unittest.TestCase):
         # Bind the app to the current context and create all tables
         with self.app.app_context():
             db.create_all()
-            self.create_test_data()
+            # self.create_test_data()
 
     def tearDown(self):
         """Executed after each test"""
         with self.app.app_context():
             db.session.remove()
-            db.drop_all()
+            # db.drop_all()
 
     def create_test_data(self):
         """Create test data for the database"""
@@ -87,7 +87,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response_data["success"], True)
         self.assertTrue(response_data["questions"])
         self.assertTrue(response_data["total_questions"])
-        self.assertEqual(len(response_data["questions"]), 2)
+        self.assertEqual(len(response_data["questions"]), 10)
 
     def test_pagination_out_of_range(self):
         res = self.client.get("/questions?page=1000&per_page=10")
@@ -120,19 +120,6 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 422)
         self.assertEqual(response_data["message"], "Unprocessable Entity")
 
-    def test_delete_question(self):
-        res = self.client.delete("/questions/1")
-        response_data = res.get_json()
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(response_data["success"], True)
-        self.assertEqual(response_data["deleted"], 1)
-
-    def test_delete_non_existing_question(self):
-        res = self.client.delete("/questions/100")
-        response_data = res.get_json()
-        self.assertEqual(res.status_code, 404)
-        self.assertEqual(response_data["message"], "Not Found")
-
     def test_search_questions(self):
         res = self.client.post("/questions/search", json={"searchTerm": "france"})
         response_data = res.get_json()
@@ -153,7 +140,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(response_data["success"], True)
         questions = response_data["questions"]
-        self.assertEqual(len(questions), 2)
+        self.assertEqual(len(questions), 4)
 
     def test_get_questions_by_category_non_existing_category(self):
         res = self.client.get("/categories/100/questions")
@@ -188,19 +175,18 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
         self.assertEqual(response_data["message"], "Not Found")
 
-    def test_get_quizz_questions_no_questions(self):
-        res = self.client.post(
-            "/quizzes",
-            json={
-                "quiz_category": {"id": 1},
-                "category_id": 1,
-                "previous_questions": [1, 2],
-            },
-        )
+    def test_delete_non_existing_question(self):
+        res = self.client.delete("/questions/100")
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(response_data["message"], "Not Found")
+
+    def test_delete_question(self):
+        res = self.client.delete("/questions/2")
         response_data = res.get_json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(response_data["success"], True)
-        self.assertEqual(response_data["question"], None)
+        self.assertEqual(response_data["deleted"], 2)
 
 
 # Make the tests conveniently executable

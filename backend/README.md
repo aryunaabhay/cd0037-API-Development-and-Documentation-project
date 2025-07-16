@@ -331,7 +331,22 @@ All error responses follow this format:
 ```
 
 ## Testing
-To run the tests, run
+
+### Option 1: Automated Testing (Recommended)
+To run the tests automatically using the provided shell script:
+
+```bash
+./test_flaskr.sh
+```
+
+This script will:
+- Drop the existing `trivia_test` database (if it exists)
+- Create a new `trivia_test` database
+- Load the SQL data from `trivia.psql`
+- Run the Python tests
+
+### Option 2: Manual Testing
+To run the tests manually, execute these commands in sequence:
 
 ```bash
 dropdb trivia_test
