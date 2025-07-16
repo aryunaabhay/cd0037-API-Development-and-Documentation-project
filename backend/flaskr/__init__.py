@@ -178,21 +178,22 @@ def create_app(test_config=None):
     @app.route("/quizzes", methods=["POST"])
     def get_quizz_questions():
         data = request.get_json()
-        category = data.get("quiz_category")
-        category_id = category.get("id")
+        request_category = data.get("quiz_category")
+        category_id = request_category.get("id")
         previous_questions = data.get("previous_questions")
 
         if category_id is None:
             raise ApiError({"message": "Not Found"}, 404)
 
-        category = Category.query.filter(Category.id == category_id).one_or_none()
-        if category is None:
-            raise ApiError({"message": "Not Found"}, 404)
+        if request_category.get("type") != "ALL":
+            category = Category.query.filter(Category.id == category_id).one_or_none()
+            if category is None:
+                raise ApiError({"message": "Not Found"}, 404)
 
         try:
             filters = [Question.id.not_in(previous_questions)]
-            if category == "ALL":
-                filters.append(Question.category == category_id)
+            if request_category.get("type") == "ALL":
+                filters.append(Question.category != category_id)
 
             questions = Question.query.filter(*filters).all()
 
