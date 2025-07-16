@@ -89,6 +89,12 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(response_data["total_questions"])
         self.assertEqual(len(response_data["questions"]), 2)
 
+    def test_pagination_out_of_range(self):
+        res = self.client.get("/questions?page=1000&per_page=10")
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(response_data["questions"], [])
+
     def test_create_question(self):
         new_question = {
             "question": "What is the capital of France?",
@@ -102,12 +108,30 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response_data["success"], True)
         self.assertTrue(response_data["created"])
 
+    def test_question_creation_non_existing_category(self):
+        new_question = {
+            "question": "What is the capital of France?",
+            "answer": "Paris",
+            "category": "100",
+            "difficulty": 1,
+        }
+        res = self.client.post("/questions", json=new_question)
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(response_data["message"], "Unprocessable Entity")
+
     def test_delete_question(self):
         res = self.client.delete("/questions/1")
         response_data = res.get_json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(response_data["success"], True)
         self.assertEqual(response_data["deleted"], 1)
+
+    def test_delete_non_existing_question(self):
+        res = self.client.delete("/questions/100")
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(response_data["message"], "Not Found")
 
     def test_search_questions(self):
         res = self.client.post("/questions/search", json={"searchTerm": "france"})
@@ -116,6 +140,13 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response_data["success"], True)
         self.assertEqual(len(response_data["questions"]), 1)
 
+    def test_search_questions_no_results(self):
+        res = self.client.post("/questions/search", json={"searchTerm": "no results"})
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(response_data["success"], True)
+        self.assertEqual(len(response_data["questions"]), 0)
+
     def test_get_questions_by_category(self):
         res = self.client.get("/categories/1/questions")
         response_data = res.get_json()
@@ -123,6 +154,12 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response_data["success"], True)
         questions = response_data["questions"]
         self.assertEqual(len(questions), 2)
+
+    def test_get_questions_by_category_non_existing_category(self):
+        res = self.client.get("/categories/100/questions")
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(response_data["message"], "Not Found")
 
     def test_get_quizz_questions(self):
         res = self.client.post(
@@ -137,6 +174,33 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(response_data["success"], True)
         self.assertTrue(response_data["question"])
+
+    def test_get_quizz_questions_non_existing_category(self):
+        res = self.client.post(
+            "/quizzes",
+            json={
+                "quiz_category": {"id": 100},
+                "category_id": 100,
+                "previous_questions": [],
+            },
+        )
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(response_data["message"], "Not Found")
+
+    def test_get_quizz_questions_no_questions(self):
+        res = self.client.post(
+            "/quizzes",
+            json={
+                "quiz_category": {"id": 1},
+                "category_id": 1,
+                "previous_questions": [1, 2],
+            },
+        )
+        response_data = res.get_json()
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(response_data["success"], True)
+        self.assertEqual(response_data["question"], None)
 
 
 # Make the tests conveniently executable

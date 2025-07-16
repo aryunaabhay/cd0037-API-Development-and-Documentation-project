@@ -52,10 +52,19 @@ def create_app(test_config=None):
     def get_questions():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
+
         try:
             query = Question.query
             total_questions = query.count()
+
+            # If the page is out of range, return an empty list
+            if page > (total_questions / per_page if total_questions > per_page else 1):
+                return jsonify({"success": True, "questions": [], "total_questions": 0})
+
             questions = query.paginate(page=page, per_page=per_page, count=False)
+            print(questions)
+            print(questions.items)
+            print(questions.total)
             categories = Category.query.all()
 
             return jsonify(
@@ -69,8 +78,9 @@ def create_app(test_config=None):
                     "current_category": "Science",
                 }
             )
+        except ApiError:
+            raise
         except Exception as e:
-            print(e)
             abort(500)
 
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
@@ -78,37 +88,49 @@ def create_app(test_config=None):
         try:
             question = Question.query.filter(Question.id == question_id).one_or_none()
             if question is None:
-                abort(404)
-            try:
-                question.delete()
-            except:
-                abort(500)
-
+                raise ApiError(status_code=404, error={"message": "Not Found"})
+            question.delete()
             return jsonify({"success": True, "deleted": question_id})
-        except:
+        except ApiError:
+            raise
+        except Exception as e:
             abort(500)
 
     @app.route("/questions", methods=["POST"])
     def create_question():
         data = request.get_json()
         if data is None:
-            abort(400)
+            raise ApiError({"message": "Bad Request"}, 400)
 
         question = data.get("question")
         answer = data.get("answer")
-        category = data.get("category")
+        category_id = data.get("category")
         difficulty = data.get("difficulty")
-        if question is None or answer is None or category is None or difficulty is None:
-            abort(400)
+        print(category_id)
+
+        if (
+            question is None
+            or answer is None
+            or category_id is None
+            or difficulty is None
+        ):
+            raise ApiError({"message": "Bad Request"}, 400)
+
+        category = Category.query.filter(Category.id == category_id).one_or_none()
+        if category is None:
+            raise ApiError({"message": "Unprocessable Entity"}, 422)
+
         try:
             question = Question(
                 question=question,
                 answer=answer,
-                category=category,
+                category=category_id,
                 difficulty=difficulty,
             )
             question.insert()
             return jsonify({"success": True, "created": question.id})
+        except ApiError:
+            raise
         except Exception as e:
             abort(500)
 
@@ -136,6 +158,10 @@ def create_app(test_config=None):
     @app.route("/categories/<string:category_id>/questions", methods=["GET"])
     def get_questions_by_category(category_id):
         try:
+            category = Category.query.filter(Category.id == category_id).one_or_none()
+            if category is None:
+                raise ApiError({"message": "Not Found"}, 404)
+
             questions = Question.query.filter(Question.category == category_id).all()
             return jsonify(
                 {
@@ -143,6 +169,8 @@ def create_app(test_config=None):
                     "questions": [question.format() for question in questions],
                 }
             )
+        except ApiError:
+            raise
         except Exception as e:
             print(e)
             abort(500)
@@ -153,14 +181,24 @@ def create_app(test_config=None):
         category = data.get("quiz_category")
         category_id = category.get("id")
         previous_questions = data.get("previous_questions")
+
         if category_id is None:
-            abort(400)
+            raise ApiError({"message": "Not Found"}, 404)
+
+        category = Category.query.filter(Category.id == category_id).one_or_none()
+        if category is None:
+            raise ApiError({"message": "Not Found"}, 404)
+
         try:
             filters = [Question.id.not_in(previous_questions)]
             if category == "ALL":
                 filters.append(Question.category == category_id)
 
             questions = Question.query.filter(*filters).all()
+
+            if len(questions) == 0:
+                return jsonify({"success": True, "question": None})
+
             return jsonify(
                 {
                     "success": True,

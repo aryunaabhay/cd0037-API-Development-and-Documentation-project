@@ -1,0 +1,4 @@
+DATABASE_NAME=trivia
+DATABASE_USER=postgres
+DATABASE_PASSWORD=password
+DATABASE_HOST=localhost:5432
